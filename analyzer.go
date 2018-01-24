@@ -21,7 +21,7 @@ type OutPutData struct {
 	// 成功率
 	SuccessRate float64	`json:"successRate"`
 	// 成功平均耗时
-	SuccessMsAver float64 `json:"successMsAver"`
+	SuccessMsAver uint32 `json:"successMsAver"`
 	// 成功最大耗时
 	MaxMs uint32 `json:"maxMs"`
 	// 成功最小耗时
@@ -77,7 +77,7 @@ func (c *ReportClientConfig) statistics() {
 			outputData.SuccessRate = float64(collectedData.SuccessCount) / float64(outputData.Count)
 			outputData.FastRate = float64(collectedData.FastCount) / float64(outputData.Count)
 			outputData.FastCount = collectedData.FastCount
-			outputData.SuccessMsAver = float64(collectedData.SuccessMsCount) / float64(outputData.Count)
+			outputData.SuccessMsAver = uint32(float64(collectedData.SuccessMsCount) / float64(outputData.Count))
 			outputData.SuccessCount = collectedData.SuccessCount
 			outputData.FailCount = collectedData.FailCount
 			outputData.MaxMs = collectedData.MaxMs

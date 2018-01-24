@@ -130,10 +130,13 @@ func Register(c ReportClientConfig) ReportClient {
 	c.entryConfigMap = map[string]EntryConfig {}
 	c.recentFastRateStatus = map[string]*alertStatus {}
 	c.recentSuccessRateStatus = map[string]*alertStatus {}
-	c.CodeFeatureMap = map[int]CodeFeature {
-		200: {
-			Success: true,
-		},
+	// 如果没有状态码映射，则启用默认的机制
+	if c.CodeFeatureMap == nil {
+		c.CodeFeatureMap = map[int]CodeFeature {
+			200: {
+				Success: true,
+			},
+		}
 	}
 	client := &c
 	// 建立一条带缓存的channel信道，上报的数据流经通道以支持串行处理（避免并发锁）
