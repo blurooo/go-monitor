@@ -62,6 +62,8 @@ type ReportClientConfig struct {
 	ChannelCacheCount int
 	// 判定code是否成功的依据，默认为 {200: { Success: true }}，取白名单机制，除此处定义的以外，统统认为失败。当然，如果有必要自定义Name属性，也可以定义一些失败的code
 	CodeFeatureMap map[int]CodeFeature
+	// 自定义获取code属性的方式，优先于CodeFeatureMap
+	GetCodeFeature func(code int) (success bool, name string)
 	// 失败分布统计出报表时，如果没有在DefaultSuccessStatus定义过该状态的Name属性，将默认将DefaultFailDistributionFormat中的%code转化为对应的code并作为报表项，该值默认为"code[%code]"
 	DefaultFailDistributionFormat string
 	// 接受数据输出定制，默认输出到控制台
@@ -130,8 +132,8 @@ func Register(c ReportClientConfig) ReportClient {
 	c.entryConfigMap = map[string]EntryConfig {}
 	c.recentFastRateStatus = map[string]*alertStatus {}
 	c.recentSuccessRateStatus = map[string]*alertStatus {}
-	// 如果没有状态码映射，则启用默认的机制
-	if c.CodeFeatureMap == nil {
+	// 如果没有指定自定义code特征识别函数，且状态码映射为空，则启用默认的机制
+	if c.GetCodeFeature == nil && c.CodeFeatureMap == nil {
 		c.CodeFeatureMap = map[int]CodeFeature {
 			200: {
 				Success: true,

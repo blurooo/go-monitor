@@ -138,8 +138,14 @@ func (c *ReportClientConfig) serverTask(curReportServerData *reportServer) {
 		// 先分配空间
 		curCollectData.TimeConsumingDistribution = make([]uint32, curCollectData.Config.TimeConsumingDistributionSplit)
 	}
+	var success bool
+	if c.GetCodeFeature != nil {
+		success, _ = c.GetCodeFeature(curReportServerData.Code)
+	} else if s, ok := c.CodeFeatureMap[curReportServerData.Code]; ok {
+		success = s.Success
+	}
 	// 命中成功状态码
-	if s, ok := c.CodeFeatureMap[curReportServerData.Code]; ok && s.Success {
+	if success {
 		curCollectData.SuccessCount++
 		if curCollectData.MinMs == 0 {
 			curCollectData.MinMs = curReportServerData.Ms

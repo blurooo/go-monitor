@@ -108,8 +108,14 @@ func (c *ReportClientConfig) statistics() {
 
 			// 失败分布统计
 			for status, count := range collectedData.FailDistribution {
-				if s, ok := c.CodeFeatureMap[status]; ok && s.Name != "" {
-					outputData.FailDistribution[s.Name] = count
+				var name string
+				if c.GetCodeFeature != nil {
+					_, name = c.GetCodeFeature(status)
+				} else if s, ok := c.CodeFeatureMap[status]; ok && s.Name != "" {
+					name = s.Name
+				}
+				if name != "" {
+					outputData.FailDistribution[name] = count
 				} else {
 					outputData.FailDistribution[strings.Replace(c.DefaultFailDistributionFormat, "%code", strconv.Itoa(status), 1)] = count
 				}
