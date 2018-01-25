@@ -108,6 +108,21 @@ var httpReportClient = monitor.Register(monitor.ReportClientConfig {
 ```
 `CodeFeatureMap`中允许声明该状态码是否成功，并指定其名称(使用在统计报告中)，除此之外的code都将认为失败。
 
+除了使用白名单机制来决断code之外，`go-monitor`也提供了一个适应性更强的方式去判定（优先于`CodeFeatureMap`）：
+```
+// 注册得到一个上报客户端用于http服务质量监控
+var httpReportClient = monitor.Register(monitor.ReportClientConfig {
+    Name: "http服务监控",
+    GetCodeFeature: func(code int) (success bool, name string) {
+        if code == 0 {
+            return true, "成功"
+        } else {
+            return false, "失败"
+        }
+    },
+})
+```
+
 在每个统计周期内，成功率达不到期望的值时，该条目将被标记，在连续标记若干个统计周期之后，`go-monitor`便会触发成功率不达标告警，告警数据明确指明了具体的监控服务和告警条目，并附带连续被标记为成功率不达标的几次统计数据，默认打印到控制台，但同样允许我们定制，我们可以按照自己的意愿处理，例如发送邮件通知相关人等：
 ```
 // 注册得到一个上报客户端用于http服务质量监控
