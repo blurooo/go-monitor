@@ -47,91 +47,87 @@ type alertStatus struct {
 
 // 周期性启动分析任务
 func (c *ReportClientConfig) scheduleTask() {
-	go func() {
-		// 定时统计
-		t := time.NewTicker(time.Duration(c.StatisticalCycle) * time.Millisecond)
-		for curTime := range t.C {
-			for _, collectData := range c.collectDataMap  {
-				c.taskChannel <- &taskQueue {
-					taskType: CLEAR,
-					data: clearData {
-						Name: collectData.Name,
-						Time: curTime,
-					},
-				}
+	// 定时统计
+	t := time.NewTicker(time.Duration(c.StatisticalCycle) * time.Millisecond)
+	for curTime := range t.C {
+		for _, collectData := range c.collectDataMap  {
+			c.taskChannel <- &taskQueue {
+				taskType: CLEAR,
+				data: clearData {
+					Name: collectData.Name,
+					Time: curTime,
+				},
 			}
 		}
-	}()
+	}
 }
 
 // 分析统计
 func (c *ReportClientConfig) statistics() {
-	go func() {
-		// 以具体条目为单位进行统计分析
-		for collectedData := range c.statisticsChannel {
-			// 常规指标统计
-			outputData := OutPutData {}
-			outputData.ClientName = c.Name
-			outputData.InterfaceName = collectedData.Name
-			outputData.Count = collectedData.FailCount + collectedData.SuccessCount
-			outputData.SuccessRate = float64(collectedData.SuccessCount) / float64(outputData.Count)
-			outputData.FastRate = float64(collectedData.FastCount) / float64(outputData.Count)
-			outputData.FastCount = collectedData.FastCount
-			outputData.SuccessMsAver = uint32(float64(collectedData.SuccessMsCount) / float64(outputData.Count))
-			outputData.SuccessCount = collectedData.SuccessCount
-			outputData.FailCount = collectedData.FailCount
-			outputData.MaxMs = collectedData.MaxMs
-			outputData.MinMs = collectedData.MinMs
-			outputData.Timestamp = collectedData.Time.UTC()
-			outputData.TimeConsumingDistribution = map[string]uint32 {}
-			outputData.FailDistribution = map[string]uint32 {}
+	// 以具体条目为单位进行统计分析
+	for collectedData := range c.statisticsChannel {
+		// 常规指标统计
+		outputData := OutPutData {}
+		outputData.ClientName = c.Name
+		outputData.InterfaceName = collectedData.Name
+		outputData.Count = collectedData.FailCount + collectedData.SuccessCount
+		outputData.SuccessRate = float64(collectedData.SuccessCount) / float64(outputData.Count)
+		outputData.FastRate = float64(collectedData.FastCount) / float64(outputData.Count)
+		outputData.FastCount = collectedData.FastCount
+		outputData.SuccessMsAver = uint32(float64(collectedData.SuccessMsCount) / float64(outputData.Count))
+		outputData.SuccessCount = collectedData.SuccessCount
+		outputData.FailCount = collectedData.FailCount
+		outputData.MaxMs = collectedData.MaxMs
+		outputData.MinMs = collectedData.MinMs
+		outputData.Timestamp = collectedData.Time.UTC()
+		outputData.TimeConsumingDistribution = map[string]uint32 {}
+		outputData.FailDistribution = map[string]uint32 {}
 
 
-			// 时延分布统计
-			scope := (collectedData.Config.TimeConsumingDistributionMax - collectedData.Config.TimeConsumingDistributionMin) / uint32(collectedData.Config.TimeConsumingDistributionSplit - 2)
-			// 计算第一个区间
-			outputData.TimeConsumingDistribution["<" + strconv.FormatUint(uint64(collectedData.Config.TimeConsumingDistributionMin), 10)] = collectedData.TimeConsumingDistribution[0]
-			// 计算最后一个区间
-			outputData.TimeConsumingDistribution[">" + strconv.FormatUint(uint64(collectedData.Config.TimeConsumingDistributionMax), 10)] = collectedData.TimeConsumingDistribution[collectedData.Config.TimeConsumingDistributionSplit - 1]
-			// 计算剩余区间
-			for i := 1; i < collectedData.Config.TimeConsumingDistributionSplit - 1; i++ {
-				start := int(collectedData.Config.TimeConsumingDistributionMin + uint32(i - 1) * scope)
-				var end int
-				if i == collectedData.Config.TimeConsumingDistributionSplit - 1 {
-					end = int(collectedData.Config.TimeConsumingDistributionMax)
-				} else {
-					end = int(collectedData.Config.TimeConsumingDistributionMin + uint32(i) * scope)
-				}
-				outputData.TimeConsumingDistribution[strconv.Itoa(start) + "~" + strconv.Itoa(end)] = collectedData.TimeConsumingDistribution[i]
+		// 时延分布统计
+		scope := (collectedData.Config.TimeConsumingDistributionMax - collectedData.Config.TimeConsumingDistributionMin) / uint32(collectedData.Config.TimeConsumingDistributionSplit - 2)
+		// 计算第一个区间
+		outputData.TimeConsumingDistribution["<" + strconv.FormatUint(uint64(collectedData.Config.TimeConsumingDistributionMin), 10)] = collectedData.TimeConsumingDistribution[0]
+		// 计算最后一个区间
+		outputData.TimeConsumingDistribution[">" + strconv.FormatUint(uint64(collectedData.Config.TimeConsumingDistributionMax), 10)] = collectedData.TimeConsumingDistribution[collectedData.Config.TimeConsumingDistributionSplit - 1]
+		// 计算剩余区间
+		for i := 1; i < collectedData.Config.TimeConsumingDistributionSplit - 1; i++ {
+			start := int(collectedData.Config.TimeConsumingDistributionMin + uint32(i - 1) * scope)
+			var end int
+			if i == collectedData.Config.TimeConsumingDistributionSplit - 1 {
+				end = int(collectedData.Config.TimeConsumingDistributionMax)
+			} else {
+				end = int(collectedData.Config.TimeConsumingDistributionMin + uint32(i) * scope)
 			}
-
-
-			// 失败分布统计
-			for status, count := range collectedData.FailDistribution {
-				var name string
-				if c.GetCodeFeature != nil {
-					_, name = c.GetCodeFeature(status)
-				} else if s, ok := c.CodeFeatureMap[status]; ok && s.Name != "" {
-					name = s.Name
-				}
-				if name != "" {
-					outputData.FailDistribution[name] = count
-				} else {
-					outputData.FailDistribution[strings.Replace(c.DefaultFailDistributionFormat, "%code", strconv.Itoa(status), 1)] = count
-				}
-			}
-
-			// 告警分析：由于告警分析存在对定制化告警函数的调用可能性，无法预估性能，所以启用新的gorouting去执行避免不可预测的风险
-			go c.alertAnalyze(collectedData.Name, outputData)
-
-			// 输出最终统计数据
-			if c.OutputCaller != nil {
-				// 同理，但凡外部自定义函数的调用应当启用新的gorouting去执行
-				go c.OutputCaller(&outputData)
-			}
-			defaultOutputCaller(&outputData)
+			outputData.TimeConsumingDistribution[strconv.Itoa(start) + "~" + strconv.Itoa(end)] = collectedData.TimeConsumingDistribution[i]
 		}
-	}()
+
+
+		// 失败分布统计
+		for status, count := range collectedData.FailDistribution {
+			var name string
+			if c.GetCodeFeature != nil {
+				_, name = c.GetCodeFeature(status)
+			} else if s, ok := c.CodeFeatureMap[status]; ok && s.Name != "" {
+				name = s.Name
+			}
+			if name != "" {
+				outputData.FailDistribution[name] = count
+			} else {
+				outputData.FailDistribution[strings.Replace(c.DefaultFailDistributionFormat, "%code", strconv.Itoa(status), 1)] = count
+			}
+		}
+
+		// 告警分析：由于告警分析存在对定制化告警函数的调用可能性，无法预估性能，所以启用新的gorouting去执行避免不可预测的风险
+		go c.alertAnalyze(collectedData.Name, outputData)
+
+		// 输出最终统计数据
+		if c.OutputCaller != nil {
+			// 同理，但凡外部自定义函数的调用应当启用新的gorouting去执行
+			go c.OutputCaller(&outputData)
+		}
+		defaultOutputCaller(&outputData)
+	}
 }
 
 // 告警相关的分析

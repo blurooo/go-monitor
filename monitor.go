@@ -147,11 +147,11 @@ func Register(c ReportClientConfig) ReportClient {
 	client.statisticsChannel = make(chan reportData, c.ChannelCacheCount)
 	client.collectDataMap = map[string]*reportData {}
 	// 启动收集模块
-	client.collect()
+	go client.collect()
 	// 启动定时器任务
-	client.scheduleTask()
+	go client.scheduleTask()
 	// 启动统计分析模块
-	client.statistics()
+	go client.statistics()
 	return client
 }
 

@@ -86,20 +86,18 @@ func (c *ReportClientConfig) AddEntryConfig(name string, entryConfig EntryConfig
 
 // 收集
 func (c *ReportClientConfig) collect() {
-	go func() {
-		// 监听本客户端的上报信道
-		for t := range c.taskChannel {
-			// 服务端上报类型的统计任务
-			if t.taskType == SERVER {
-				curReportServerData := t.data.(reportServer)
-				c.serverTask(&curReportServerData)
+	// 监听本客户端的上报信道
+	for t := range c.taskChannel {
+		// 服务端上报类型的统计任务
+		if t.taskType == SERVER {
+			curReportServerData := t.data.(reportServer)
+			c.serverTask(&curReportServerData)
 
-			} else if t.taskType == CLEAR {		// 清理旧统计数据的任务
-				curClearData := t.data.(clearData)
-				c.clearTask(&curClearData)
-			}
+		} else if t.taskType == CLEAR {		// 清理旧统计数据的任务
+			curClearData := t.data.(clearData)
+			c.clearTask(&curClearData)
 		}
-	}()
+	}
 }
 
 // 清理任务
