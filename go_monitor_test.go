@@ -3,61 +3,68 @@ package monitor
 import (
 	"testing"
 	"time"
-	"math/rand"
 )
 
 
-func TestAlertAndRecover(t *testing.T) {
-	// 测试耗时告警
-	testAlertAndRecover(200, 200, t)
-	// 测试成功率告警
-	testAlertAndRecover(200, 500, t)
+func Test1(t *testing.T) {
+	alertTimes, _ := reportPipeline(FAIL, []bool {false, false, true, false})
+	if alertTimes != 0 {
+		t.Error("false false true false 失败", "告警次数", alertTimes)
+	}
 }
 
-// 同时测试告警和恢复
-func testAlertAndRecover(ms uint32, status int, t *testing.T) {
-	var alertTimes = 0
-	var recoverTimes = 0
-	cycle := 100
+
+func Test2(t *testing.T) {
+	alertTimes, recoverTimes := reportPipeline(FAIL, []bool {false, false, false, true, true, true})
+	if alertTimes != 1 || recoverTimes != 1 {
+		t.Error("false, false, false, true, true, true 失败", "告警次数", alertTimes, "恢复次数", recoverTimes)
+	}
+}
+
+func Test3(t *testing.T) {
+	alertTimes, _ := reportPipeline(FAIL, []bool {false, true, false, false})
+	if alertTimes != 0 {
+		t.Error("false true false false 失败", "告警次数", alertTimes)
+	}
+}
+
+func Test4(t *testing.T) {
+	alertTimes, recoverTimes := reportPipeline(FAIL, []bool {false, false, false, true, true, false, true, true, true})
+	if alertTimes != 1 || recoverTimes != 1 {
+		t.Error("false, false, false, true, true, true 失败", "告警次数", alertTimes, "恢复次数", recoverTimes)
+	}
+}
+
+// 按设定的上报流水测试， 返回告警次数
+func reportPipeline(alertType AlertType, pipeline []bool) (alertTimes int, recoverTimes int) {
+	var ms uint32 = 0
+	code := 0
 	var testReportClient = Register(ReportClientConfig {
 		Name: "告警测试",
-		StatisticalCycle: cycle,										// 上报统计周期100ms
-		DefaultFastTime: ms,											// 默认服务的时间达标为200ms以内
+		StatisticalCycle: 50,										// 上报统计周期50ms
 		AlertCaller: func(clientName string, interfaceName string, alertType AlertType, recentOutputData []OutPutData) {
-			// 告警只会触发1次 所以最终alertAlready应该为true  如果触发两次  则alertAlready为false  逻辑出错
 			alertTimes++
 		},
 		RecoverCaller: func(clientName string, interfaceName string, alertType AlertType, recentOutputData []OutPutData) {
 			recoverTimes++
 		},
 	})
-	timeout := make(chan bool)
-	defer close(timeout)
-	time.AfterFunc(time.Duration(14 * cycle) * time.Millisecond, func() {
-		if alertTimes != 1 || recoverTimes != 1 {
-			t.Error("告警成功：", alertTimes, "恢复通知成功：", recoverTimes)
+	for _, success := range pipeline {
+		if success {
+			ms = 1
+			code = 200
+		} else {
+			if alertType == SLOW {
+				ms = 1000
+				code = 200
+			} else if alertType == FAIL {
+				code = 500
+			}
 		}
-		timeout <- true
-	})
-	// 3次触达告警  7次应该满足告警条件  但只触达一次
-	for i := 0; i < 7; i++ {
-		// 每个时间单位内随机上报10到59次
-		times := rand.New(rand.NewSource(time.Now().Unix())).Int() % 50 + 10
-		for j := 0; j < times; j++ {
-			testReportClient.Report("GET - 测试接口", ms + 1, status)
-		}
-		time.Sleep(time.Duration(cycle) * time.Millisecond)
+		testReportClient.Report("GET - 测试接口", ms, code)
+		time.Sleep(60 * time.Millisecond)
 	}
-	// 3次触达恢复通知  7次应该满足恢复条件  但只触达一次
-	for i := 0; i < 7; i++ {
-		// 每个时间单位内随机上报10到59次
-		times := rand.New(rand.NewSource(time.Now().Unix())).Int() % 50 + 10
-		for j := 0; j < times; j++ {
-			testReportClient.Report("GET - 测试接口", ms - 1, 200)
-		}
-		time.Sleep(time.Duration(cycle) * time.Millisecond)
-	}
-	<- timeout
+	return
 }
 
 func BenchmarkReport(b *testing.B) {

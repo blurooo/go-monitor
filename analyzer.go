@@ -164,6 +164,8 @@ func (c *ReportClientConfig) alertAnalyze(entryName string, outputData OutPutDat
 			curFastRateStatus.recentAlertOutput = curFastRateStatus.recentAlertOutput[:0]
 		}
 	} else {
+		// 只要一次成功就清空原有不健康记录，实测比判断长度是否大于0再去清空性能要略优
+		curFastRateStatus.recentAlertOutput = curFastRateStatus.recentAlertOutput[:0]
 		// 处于告警状态时 每次成功都累计恢复次数
 		if curFastRateStatus.curState == SLOW {
 			curFastRateStatus.recentRecoverOutput = append(curFastRateStatus.recentRecoverOutput, outputData)
@@ -176,9 +178,6 @@ func (c *ReportClientConfig) alertAnalyze(entryName string, outputData OutPutDat
 				}
 				// 重置标志
 				curFastRateStatus.curState = NONE
-				curFastRateStatus.recentAlertOutput = curFastRateStatus.recentAlertOutput[:0]
-			} else if len(curFastRateStatus.recentAlertOutput) > 0 {
-				// 只要一次成功就清空原有不健康记录
 				curFastRateStatus.recentAlertOutput = curFastRateStatus.recentAlertOutput[:0]
 			}
 		}
@@ -203,6 +202,8 @@ func (c *ReportClientConfig) alertAnalyze(entryName string, outputData OutPutDat
 			curSuccessRateStatus.recentAlertOutput = curSuccessRateStatus.recentAlertOutput[:0]
 		}
 	} else {
+		// 只要一次成功就清空原有不健康记录
+		curSuccessRateStatus.recentAlertOutput = curSuccessRateStatus.recentAlertOutput[:0]
 		// 处于告警状态时 每次成功都累计恢复次数
 		if curSuccessRateStatus.curState == FAIL {
 			curSuccessRateStatus.recentRecoverOutput = append(curSuccessRateStatus.recentRecoverOutput, outputData)
@@ -215,9 +216,6 @@ func (c *ReportClientConfig) alertAnalyze(entryName string, outputData OutPutDat
 				}
 				// 重置标志
 				curSuccessRateStatus.curState = NONE
-				curSuccessRateStatus.recentAlertOutput = curSuccessRateStatus.recentAlertOutput[:0]
-			} else if len(curSuccessRateStatus.recentAlertOutput) > 0 {
-				// 只要一次成功就清空原有不健康记录
 				curSuccessRateStatus.recentAlertOutput = curSuccessRateStatus.recentAlertOutput[:0]
 			}
 		}
