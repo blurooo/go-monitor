@@ -50,14 +50,11 @@ func (c *ReportClientConfig) scheduleTask() {
 	// 定时统计
 	t := time.NewTicker(time.Duration(c.StatisticalCycle) * time.Millisecond)
 	for curTime := range t.C {
-		for _, collectData := range c.collectDataMap  {
-			c.taskChannel <- &taskQueue {
-				taskType: CLEAR,
-				data: clearData {
-					Name: collectData.Name,
-					Time: curTime,
-				},
-			}
+		c.taskChannel <- &taskQueue {
+			taskType: CLEAR,
+			data: clearData {
+				Time: curTime,
+			},
 		}
 	}
 }
@@ -119,7 +116,7 @@ func (c *ReportClientConfig) statistics() {
 		}
 
 		// 告警分析：由于告警分析存在对定制化告警函数的调用可能性，无法预估性能，所以启用新的gorouting去执行避免不可预测的风险
-		go c.alertAnalyze(collectedData.Name, outputData)
+		//c.alertAnalyze(collectedData.Name, outputData)
 
 		// 输出最终统计数据
 		if c.OutputCaller != nil {

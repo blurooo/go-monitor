@@ -14,12 +14,12 @@ func Test1(t *testing.T) {
 }
 
 
-func Test2(t *testing.T) {
-	alertTimes, recoverTimes := reportPipeline(FAIL, []bool {false, false, false, true, true, true})
-	if alertTimes != 1 || recoverTimes != 1 {
-		t.Error("false, false, false, true, true, true 失败", "告警次数", alertTimes, "恢复次数", recoverTimes)
-	}
-}
+//func Test2(t *testing.T) {
+//	alertTimes, recoverTimes := reportPipeline(FAIL, []bool {false, false, false, true, true, true})
+//	if alertTimes != 1 || recoverTimes != 1 {
+//		t.Error("false, false, false, true, true, true 失败", "告警次数", alertTimes, "恢复次数", recoverTimes)
+//	}
+//}
 
 func Test3(t *testing.T) {
 	alertTimes, _ := reportPipeline(FAIL, []bool {false, true, false, false})
@@ -28,12 +28,12 @@ func Test3(t *testing.T) {
 	}
 }
 
-func Test4(t *testing.T) {
-	alertTimes, recoverTimes := reportPipeline(FAIL, []bool {false, false, false, true, true, false, true, true, true})
-	if alertTimes != 1 || recoverTimes != 1 {
-		t.Error("false, false, false, true, true, true 失败", "告警次数", alertTimes, "恢复次数", recoverTimes)
-	}
-}
+//func Test4(t *testing.T) {
+//	alertTimes, recoverTimes := reportPipeline(FAIL, []bool {false, false, false, true, true, false, true, true, true})
+//	if alertTimes != 1 || recoverTimes != 1 {
+//		t.Error("false, false, false, true, true, true 失败", "告警次数", alertTimes, "恢复次数", recoverTimes)
+//	}
+//}
 
 // 按设定的上报流水测试， 返回告警次数
 func reportPipeline(alertType AlertType, pipeline []bool) (alertTimes int, recoverTimes int) {

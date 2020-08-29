@@ -102,22 +102,23 @@ func (c *ReportClientConfig) collect() {
 
 // 清理任务
 func (c *ReportClientConfig) clearTask(curClearData *clearData) {
-	curCollectData := c.collectDataMap[curClearData.Name]
-	// 只在有上报记录时才做清理
-	if curCollectData.SuccessCount != 0 || curCollectData.FailCount != 0 {
-		collectedData := *curCollectData
-		collectedData.Time = curClearData.Time
-		// 拷贝一份数据流入分析
-		c.statisticsChannel <- collectedData
-		// 清空旧数据
-		curCollectData.MinMs = 0
-		curCollectData.MaxMs = 0
-		curCollectData.FailCount = 0
-		curCollectData.SuccessCount = 0
-		curCollectData.SuccessMsCount = 0
-		curCollectData.FastCount = 0
-		curCollectData.FailDistribution = map[int]uint32 {}
-		curCollectData.TimeConsumingDistribution = make([]uint32, curCollectData.Config.TimeConsumingDistributionSplit)
+	for _, curCollectData := range c.collectDataMap {
+		// 只在有上报记录时才做清理
+		if curCollectData.SuccessCount != 0 || curCollectData.FailCount != 0 {
+			collectedData := *curCollectData
+			collectedData.Time = curClearData.Time
+			// 拷贝一份数据流入分析
+			c.statisticsChannel <- collectedData
+			// 清空旧数据
+			curCollectData.MinMs = 0
+			curCollectData.MaxMs = 0
+			curCollectData.FailCount = 0
+			curCollectData.SuccessCount = 0
+			curCollectData.SuccessMsCount = 0
+			curCollectData.FastCount = 0
+			curCollectData.FailDistribution = map[int]uint32 {}
+			curCollectData.TimeConsumingDistribution = make([]uint32, curCollectData.Config.TimeConsumingDistributionSplit)
+		}
 	}
 }
 
